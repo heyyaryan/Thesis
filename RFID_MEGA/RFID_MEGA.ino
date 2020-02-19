@@ -21,11 +21,10 @@ RST             D9           D8
 #include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;       // hard-wired for UNO shields anyway.
 #include <TouchScreen.h>
-#include <Fonts/FreeSans9pt7b.h>
 
 /* printer libs */
-//#include "Adafruit_Thermal.h"
-//Adafruit_Thermal printer(&Serial3);
+#include "Adafruit_Thermal.h"
+Adafruit_Thermal printer(&Serial3);
 
 
 #if defined(__SAM3X8E__)
@@ -43,24 +42,8 @@ String content = "";
 int digitCount = 0;
 unsigned long past = 0;
 long debounce_val = 50;
-
-
-
-/* Define TFT Pins */
-//#define LCD_RST 2
-//#define LCD_CS A3
-//#define LCD_RS A2
-//#define LCD_WR A1
-//#define LCD_RD A0
-
-//#define LCD_D0 8
-//#define LCD_D1 9
-//#define LCD_D2 2
-//#define LCD_D3 3
-//#define LCD_D4 4
-//#define LCD_D5 5
-//#define LCD_D6 6
-//#define LCD_D7 7
+float amt, newbal;
+float rembal = 1000;
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
@@ -101,6 +84,7 @@ uint8_t Orientation = 0;    //PORTRAIT
 #define WHITE   0xFFFF
 #define GREEN   0x0FC0
 #define DGRN    0x0AC2
+#define PINK    0xFA9C
 #define LCD_RESET 2
 
 /* Wi-Fi libs */
@@ -114,8 +98,8 @@ char user[] = "root";              // MySQL user login username
 char password[] = "";        // MySQL user login password
 
 // WiFi card example
-char ssid[] = "David_WiFi";    // your SSID
-char pass[] = "secretpakta";       // your SSID Password
+char ssid[] = "Ryan's Redmi";    // your SSID
+char pass[] = "ryandavid";       // your SSID Password
 
 WiFiEspClient client;            // Use this for WiFi instead of EthernetClient
 MySQL_Connection conn((Client *)&client);
@@ -127,15 +111,13 @@ void setup()
 
   /* Initialise the RFID reader */
 
-
+    Serial.println("Initializing TFT...");
     pinMode(LCD_RESET,OUTPUT);
     digitalWrite(LCD_RESET,HIGH);
     delay(100);
     digitalWrite(LCD_RESET,LOW);//reset the TFT LCD
     delay(200);
     digitalWrite(LCD_RESET,HIGH);
-
-    Serial.println("Initializing TFT...");
     uint16_t tmp;
     tft.begin(9600);
     
@@ -161,12 +143,10 @@ void setup()
     RC522.init();
 
     /* printer init */
-      pinMode(7, OUTPUT); digitalWrite(7, LOW);
-
   // NOTE: SOME PRINTERS NEED 9600 BAUD instead of 19200, check test page.
   //mySerial.begin(19200);  // Initialize SoftwareSerial
-//  Serial3.begin(9600); // Use this instead if using hardware serial
-//  printer.begin();        // Init printer (same regardless of serial type)
+  Serial3.begin(9600); // Use this instead if using hardware serial
+  printer.begin();        // Init printer (same regardless of serial type)
 
 
   // WIFI
@@ -337,12 +317,519 @@ void scanCardRoutine() {
 
 }
 
+void kp()
+{
+    tft.fillScreen(BLACK);
+    tft.setCursor(0, 0);
+    tft.setTextSize(2);
+    tft.setTextColor(WHITE);
+    tft.print("Card No.: " + content);
+    tft.print("\nRem. Bal.: ");
+    tft.print(rembal);
+    tft.setCursor(0,50);
+    tft.print("Enter Amount:");
+    tft.setCursor(0,85);
+    tft.setTextSize(4);
+    tft.print("P");
 
-void loop()
+    // 0
+    tft.fillRect(0,((tft.height()/6)*5),((tft.width()/4)*2),(tft.height()/6), BLACK);
+    tft.drawRect(0,((tft.height()/6)*5),((tft.width()/4)*2),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*1)+30),(((tft.height()/6)*5)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("0");
+
+    // .
+    tft.fillRect(((tft.width()/4)*2),((tft.height()/6)*5),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*2),((tft.height()/6)*5),((tft.width()/4)),(tft.height()/6), PINK);\
+    tft.setCursor((((tft.width()/4)*2)+17),(((tft.height()/6)*5)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print(".");
+
+    // CLEAR
+    tft.fillRect(((tft.width()/4)*3),((tft.height()/6)*4),((tft.width()/4)),((tft.height()/6)*2), BLACK);
+    tft.drawRect(((tft.width()/4)*3),((tft.height()/6)*4),((tft.width()/4)),((tft.height()/6)*2), PINK);
+    tft.setCursor((((tft.width()/4)*3)),(((tft.height()/6)*4)+60));
+    tft.setTextSize(2);
+    tft.setTextColor(PINK);
+    tft.print("ENTER");
+
+    // 1
+    tft.fillRect(0,((tft.height()/6)*4),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(0,((tft.height()/6)*4),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor(17,(((tft.height()/6)*4)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("1");
+
+    // 2
+    tft.fillRect(((tft.width()/4)*1),((tft.height()/6)*4),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*1),((tft.height()/6)*4),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*1)+20),(((tft.height()/6)*4)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("2");
+
+    // 3
+    tft.fillRect(((tft.width()/4)*2),((tft.height()/6)*4),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*2),((tft.height()/6)*4),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*2)+20),(((tft.height()/6)*4)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("3");
+    
+    // 4
+    tft.fillRect(0,((tft.height()/6)*3),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(0,((tft.height()/6)*3),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor(17,(((tft.height()/6)*3)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("4");
+
+    // 5
+    tft.fillRect(((tft.width()/4)*1),((tft.height()/6)*3),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*1),((tft.height()/6)*3),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*1)+20),(((tft.height()/6)*3)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("5");
+
+    // 6
+    tft.fillRect(((tft.width()/4)*2),((tft.height()/6)*3),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*2),((tft.height()/6)*3),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*2)+20),(((tft.height()/6)*3)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("6");
+
+    // 7
+    tft.fillRect(0,((tft.height()/6)*2),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(0,((tft.height()/6)*2),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor(17,(((tft.height()/6)*2)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("7");
+
+
+    // 8
+    tft.fillRect(((tft.width()/4)*1),((tft.height()/6)*2),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*1),((tft.height()/6)*2),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*1)+20),(((tft.height()/6)*2)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("8");
+
+    // 9
+    tft.fillRect(((tft.width()/4)*2),((tft.height()/6)*2),((tft.width()/4)),(tft.height()/6), BLACK);
+    tft.drawRect(((tft.width()/4)*2),((tft.height()/6)*2),((tft.width()/4)),(tft.height()/6), PINK);
+    tft.setCursor((((tft.width()/4)*2)+20),(((tft.height()/6)*2)+20));
+    tft.setTextSize(4);
+    tft.setTextColor(PINK);
+    tft.print("9");
+
+    // ENTER
+    tft.fillRect(((tft.width()/4)*3),((tft.height()/6)*2),((tft.width()/4)),((tft.height()/6)*2), BLACK);
+    tft.drawRect(((tft.width()/4)*3),((tft.height()/6)*2),((tft.width()/4)),((tft.height()/6)*2), PINK);
+    tft.setCursor((((tft.width()/4)*3)),(((tft.height()/6)*2)+60));
+    tft.setTextSize(2);
+    tft.setTextColor(PINK);
+    tft.print("CLEAR");
+
+  while (true)
+  {
+  uint16_t xpos, ypos;
+  tp = ts.getPoint();
+  pinMode(XM, OUTPUT);
+  pinMode(YP, OUTPUT);
+  pinMode(XP, OUTPUT);
+  pinMode(YM, OUTPUT);
+
+//  Serial.println("P = ");
+//  Serial.print(tp);
+//  Serial.println("P.X = ");
+//  Serial.print(tp.x);
+//  Serial.println("P.Y = ");
+//  Serial.print(tp.y);
+//  Serial.println("P.z = ");
+//  Serial.print(tp.z);
+
+  if (tp.z > MINPRESSURE && tp.z < MAXPRESSURE)
+  {
+    xpos = map(tp.x, TS_LEFT, TS_RT, 0, tft.width());
+    ypos = map(tp.y, TS_TOP, TS_BOT, 0, tft.height());
+
+    
+    Serial.println("\nXPOS = ");
+    Serial.print(xpos);
+    Serial.println("\nYPOS = ");
+    Serial.print(ypos);
+
+    //enter command
+    if(xpos>200 && xpos<250 && ypos>150 && ypos<410)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      if(rembal >= amt)
+      {
+      newbal = rembal - amt;
+      tft.fillScreen(BLACK);
+      confirmPayment();
+      }
+      else
+      {
+        tft.fillRect(0, 83, tft.width(), 30, BLACK);
+        tft.drawRect(0, 83, tft.width(), 30, BLACK);
+        tft.setCursor(0,95);
+        tft.setTextColor(RED);
+        tft.setTextSize(2);
+        tft.print("INSUFFICIENT BALANCE");
+        delay(3000L);
+        kp();
+      }
+    }
+
+    //clear
+    if(xpos>180 && xpos<200 && ypos>120 && ypos<260)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(BLACK);
+      tft.setTextSize(4);
+      tft.print(amt, 2);
+      amt = 0;
+      Serial.println(amt, 2);
+    }
+
+    //0
+    if(xpos>0 && xpos<120 && ypos>330 && ypos<410)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 0;
+      }
+      else
+      {
+        amt = (amt*10) + 0;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //1
+    if(xpos>0 && xpos<50 && ypos>260 && ypos<330)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 1;
+      }
+      else
+      {
+        amt = (amt*10) + 1;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //2
+    if(xpos>51 && xpos<120 && ypos>260 && ypos<330)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 2;
+      }
+      else
+      {
+        amt = (amt*10) + 2;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //3
+    if(xpos>121 && xpos<180 && ypos>260 && ypos<330)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 3;
+      }
+      else
+      {
+        amt = (amt*10) + 3;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //4
+    if(xpos>0 && xpos<50 && ypos>185 && ypos<259)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 4;
+      }
+      else
+      {
+        amt = (amt*10) + 4;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //5
+    if(xpos>51 && xpos<120 && ypos>185 && ypos<259)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 5;
+      }
+      else
+      {
+        amt = (amt*10) + 5;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //6
+    if(xpos>121 && xpos<180 && ypos>185 && ypos<259)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 6;
+      }
+      else
+      {
+        amt = (amt*10) + 6;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+        //7
+    if(xpos>0 && xpos<50 && ypos>120 && ypos<185)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 7;
+      }
+      else
+      {
+        amt = (amt*10) + 7;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //8
+    if(xpos>51 && xpos<120 && ypos>120 && ypos<185)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 8;
+      }
+      else
+      {
+        amt = (amt*10) + 8;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+    //9
+    if(xpos>121 && xpos<180 && ypos>120 && ypos<185)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(4);
+      if(amt == 0)
+      {
+        amt = 9;
+      }
+      else
+      {
+        amt = (amt*10) + 9;
+      }
+      tft.print(amt, 0);
+      Serial.println(amt, 0);
+    }
+
+        //.
+//    if(xpos>120 && xpos<180 && ypos>330 && ypos<400)
+//    {
+//      pinMode(XM, OUTPUT);
+//      pinMode(YP, OUTPUT);
+//      tft.setCursor(175,50);
+//      tft.setTextColor(WHITE);
+//      tft.setTextSize(4);
+//      deci = true;
+//    }
+    
+    delay(500);
+  }
+}
+}
+
+void confirmPayment()
+{
+    tft.fillScreen(BLACK);
+    tft.setCursor(0,0);
+    tft.setTextSize(2);
+    tft.setTextColor(WHITE);
+    tft.print("CONFIRM PAYMENT");
+    tft.print("\n\nAmount: P ");
+    tft.print(amt);
+    tft.print("\nCard No.: " + content);
+    tft.print("\nNew Bal.: P ");
+    tft.print(newbal);
+
+    tft.fillRect(((tft.width()/4)*1), ((tft.height()/8)*2), ((tft.width()/4)*2), 30, BLACK); 
+    tft.drawRect(((tft.width()/4)*1), ((tft.height()/8)*2), ((tft.width()/4)*2), 30, PINK); 
+    tft.setCursor(((tft.width()/4)*1)+18, ((tft.height()/8)*2)+8);
+    tft.setTextSize(2);
+    tft.setTextColor(PINK);
+    tft.print("CONFIRM");
+
+    tft.fillRect(((tft.width()/4)*1), (((tft.height()/8)*2)+35), ((tft.width()/4)*2), 30, BLACK); 
+    tft.drawRect(((tft.width()/4)*1), (((tft.height()/8)*2)+35), ((tft.width()/4)*2), 30, RED); 
+    tft.setCursor(((tft.width()/4)*1)+25, (((tft.height()/8)*2)+35)+8);
+    tft.setTextSize(2);
+    tft.setTextColor(RED);
+    tft.print("CANCEL");
+
+    while(true)
+    {
+        uint16_t xpos, ypos;
+  tp = ts.getPoint();
+  pinMode(XM, OUTPUT);
+  pinMode(YP, OUTPUT);
+  pinMode(XP, OUTPUT);
+  pinMode(YM, OUTPUT);
+
+  if (tp.z > MINPRESSURE && tp.z < MAXPRESSURE)
+  {
+    xpos = map(tp.x, TS_LEFT, TS_RT, 0, tft.width());
+    ypos = map(tp.y, TS_TOP, TS_BOT, 0, tft.height());
+
+    Serial.println("\nXPOS = ");
+    Serial.print(xpos);
+    Serial.println("\nYPOS = ");
+    Serial.print(ypos);
+
+    if(xpos>50 && xpos<180 && ypos>60 && ypos<115)
+    {
+      tft.fillScreen(BLACK);
+      tft.setCursor(20,100);
+      tft.setTextSize(3);
+      tft.print("Payment");
+      tft.setCursor(20,130);
+      tft.setTextSize(3);
+      tft.print("Success!");
+      printer.justify('C');
+      printer.doubleHeightOn();
+      printer.println("COLEGIO SAN AGUSTIN BACOLOD");
+      printer.doubleHeightOff();
+      printer.justify('C');
+      printer.println("BS Aquino Drive");
+      printer.println("Bacolod City");
+      printer.feed(1);
+      printer.inverseOn();
+      printer.justify('C');
+      printer.println("TRANSACTION RECEIPT");
+      printer.inverseOff();
+      printer.justify('L');
+      printer.feed(1);
+      printer.println("TranCode: 5857854");
+      printer.println("Vendor: BOOKSTORE");
+      printer.println("Card No: " + content);
+      printer.println("Cardholder: DAVID, RJ");
+      printer.println("Dept: COE");
+      printer.doubleHeightOn();
+      printer.print("Amount: ");
+      printer.println(amt);
+      printer.doubleHeightOff();
+      printer.print("New Bal: ");
+      printer.println(newbal);
+      printer.feed(1);
+      printer.println("Thank You! Come Again");
+      printer.feed(3);
+      printer.sleep();  
+      amt = 0;
+      rembal = 0;
+      newbal = 0;
+      content = "";
+      Serial.println(content);
+      delay(1000L);
+      loop();
+    }
+
+    if(xpos>50 && xpos<180 && ypos>120 && ypos<150)
+    {
+      tft.fillScreen(BLACK);
+      tft.setCursor(0,0);
+      tft.setTextSize(2);
+      tft.print("Payment Cancelled");
+    }
+  }
+    }
+}
+
+void homeScreen()
 {
     int status = WiFi.begin(ssid, pass);
+    tft.fillScreen(BLACK);
     tft.setCursor(0, 0);
     tft.setTextSize(2.5);
+    tft.setTextColor(WHITE);
     tft.println("COLEGIO SAN AGUSTIN");
     tft.setCursor(60, 25);
     tft.println("BACOLOD");
@@ -358,105 +845,55 @@ void loop()
     tft.setCursor(0,(((tft.height()/9)*8)+15));
     tft.setTextSize(1);
     tft.print("Server Status:");
-    if(status == WL_CONNECTED)
+      if(status == WL_CONNECTED)
+      {
+        tft.fillRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), GREEN);
+        tft.drawRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), GREEN);
+        tft.setCursor(((tft.width()/4)+25), (((tft.height()/9)*8)+30));
+        tft.setTextSize(2);
+        tft.setTextColor(DGRN);
+        tft.print("ONLINE");
+      }
+      else
+      {
+        tft.fillRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
+        tft.drawRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
+        tft.setCursor(((tft.width()/4)+15), (((tft.height()/9)*8)+30));
+        tft.setTextSize(2);
+        tft.print("OFFLINE");
+      }
+}
+
+void loop()
+{
+    homeScreen();
+    while(true)
     {
-      tft.fillRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), GREEN);
-      tft.drawRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), GREEN);
-      tft.setCursor(((tft.width()/4)+25), (((tft.height()/9)*8)+30));
-      tft.setTextSize(2);
-      tft.setTextColor(DGRN);
-      tft.print("ONLINE");
-      while(true);
-    }
-    else if(status == WL_NO_SHIELD)
-    {
-      tft.fillRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
-      tft.drawRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
-      tft.setCursor(0, (((tft.height()/9)*8)+30));
-      tft.setTextSize(2);
-      tft.print("WiFi CARD NOT FOUND");
-      while(true);
-    }
-    else if(status == WL_CONNECT_FAILED)
-    {
-      tft.fillRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
-      tft.drawRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
-      tft.setCursor(0,(((tft.height()/9)*8)+30));
-      tft.setTextSize(2);
-      tft.print("CHECK SSID/PASSKEY");
-      while(true);
-    }
-    else
-    {
-      tft.fillRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
-      tft.drawRect(0, (((tft.height()/9)*8)+25), tft.width(), tft.height(), RED);
-      tft.setCursor(((tft.width()/4)+15), (((tft.height()/9)*8)+30));
-      tft.setTextSize(2);
-      tft.print("OFFLINE");
-      while(true);
-    }
-    
-    /* If so then get its serial number */
     scanCardRoutine();
+    /* If so then get its serial number */
     if(content.length() > 0) {
     Serial.println("Card found: " + content);
-    tft.reset();
-    tft.fillScreen(BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextSize(2);
-    tft.setTextColor(WHITE);
-    tft.println("Card found:  ");
-    tft.println(content);
-    tft.fillRoundRect(40, 100, 160, 40, 8, YELLOW);
-    tft.drawRoundRect(40, 100, 160, 40, 8, RED); 
-    tft.setCursor(105,112);
-    tft.setTextSize(2);
-    tft.setTextColor(RED);
-    tft.println("PAY"); 
-    tft.fillRoundRect(40, 150, 160, 40, 8, YELLOW);
-    tft.drawRoundRect(40, 150, 160, 40, 8, RED);  
-    tft.setCursor(43,163);
-    tft.setTextSize(2);
-    tft.setTextColor(RED);
-    tft.println("CHECK BALANCE"); 
-    //printer.printBitmap(csab_logo_small_width, csab_logo_small_height, csab_logo_small_data);
-//    printer.justify('C');
-//    printer.doubleHeightOn();
-//    printer.println("COLEGIO SAN AGUSTIN BACOLOD");
-//    printer.doubleHeightOff();
-//    printer.println("BS Aquino Drive");
-//    printer.println("Bacolod City");
-//    printer.println("Card found");
-//    printer.println(" ");
-//    printer.println(content);
-//    char rfidcd[content.length()];
-//    content.toCharArray(rfidcd, content.length());
-//    printer.setBarcodeHeight(50);
-//    printer.printBarcode("123456789123", UPC_A);
-//    printer.feed(2);
-    delay(20000);
-//    printer.sleep();
-    uint16_t xpos, ypos;
-      tp = ts.getPoint();
-      pinMode(XM, OUTPUT);
-      pinMode(YP, OUTPUT);
-      pinMode(XP, OUTPUT);
-      pinMode(YM, OUTPUT);
-      if (tp.z > MINPRESSURE && tp.z < MAXPRESSURE) {
-        // is controller wired for Landscape ? or are we oriented in Landscape?
-        if (SwapXY != (Orientation & 1)) SWAP(tp.x, tp.y);
-        // scale from 0->1023 to tft.width  i.e. left = 0, rt = width
-        // most mcufriend have touch (with icons) that extends below the TFT
-        // screens without icons need to reserve a space for "erase"
-        // scale the ADC values from ts.getPoint() to screen values e.g. 0-239
-        xpos = map(tp.x, TS_LEFT, TS_RT, 0, tft.width());
-        ypos = map(tp.y, TS_TOP, TS_BOT, 0, tft.height());
-      if(xpos > 312 && xpos < 771 && ypos > 560 && ypos < 650) {
-    tft.fillScreen(BLACK);
-    tft.setCursor(0,0);
-    tft.setTextSize(2);
-    tft.println("CHECK BALANCE");
+    kp();
+//    tft.reset();
+//    tft.fillScreen(BLACK);
+//    tft.setCursor(0, 0);
+//    tft.setTextSize(2);
+//    tft.setTextColor(WHITE);
+//    tft.println("Card found:  ");
+//    tft.println(content);
+//    tft.fillRoundRect(40, 100, 160, 40, 8, YELLOW);
+//    tft.drawRoundRect(40, 100, 160, 40, 8, RED); 
+//    tft.setCursor(105,112);
+//    tft.setTextSize(2);
+//    tft.setTextColor(RED);
+//    tft.println("PAY"); 
+//    tft.fillRoundRect(40, 150, 160, 40, 8, YELLOW);
+//    tft.drawRoundRect(40, 150, 160, 40, 8, RED);  
+//    tft.setCursor(43,163);
+//    tft.setTextSize(2);
+//    tft.setTextColor(RED);
+//    tft.println("CHECK BALANCE"); 
+//    delay(20000);
     }
-}
 }
 }
