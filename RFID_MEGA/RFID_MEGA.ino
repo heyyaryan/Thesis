@@ -42,7 +42,7 @@ String content = "";
 int digitCount = 0;
 unsigned long past = 0;
 long debounce_val = 50;
-float amt, newbal;
+float amt, newbal, dec;
 float rembal = 1000;
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
@@ -704,15 +704,12 @@ void kp()
     }
 
         //.
-//    if(xpos>120 && xpos<180 && ypos>330 && ypos<400)
-//    {
-//      pinMode(XM, OUTPUT);
-//      pinMode(YP, OUTPUT);
-//      tft.setCursor(175,50);
-//      tft.setTextColor(WHITE);
-//      tft.setTextSize(4);
-//      deci = true;
-//    }
+    if(xpos>120 && xpos<180 && ypos>330 && ypos<400)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      deci();
+    }
     
     delay(500);
   }
@@ -801,8 +798,12 @@ void confirmPayment()
       printer.println(newbal);
       printer.feed(1);
       printer.println("Thank You! Come Again");
-      printer.feed(3);
-      printer.sleep();  
+      printer.feed(2);
+      printer.sleep();
+      tft.setCursor(0,150);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(2);
+      tft.print("You can tear the receipt now");  
       amt = 0;
       rembal = 0;
       newbal = 0;
@@ -862,6 +863,261 @@ void homeScreen()
         tft.setTextSize(2);
         tft.print("OFFLINE");
       }
+}
+
+void deci()
+{
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+
+  while (true)
+  {
+  uint16_t xpos, ypos;
+  tp = ts.getPoint();
+  pinMode(XM, OUTPUT);
+  pinMode(YP, OUTPUT);
+  pinMode(XP, OUTPUT);
+  pinMode(YM, OUTPUT);
+
+  if (tp.z > MINPRESSURE && tp.z < MAXPRESSURE)
+  {
+    xpos = map(tp.x, TS_LEFT, TS_RT, 0, tft.width());
+    ypos = map(tp.y, TS_TOP, TS_BOT, 0, tft.height());
+
+    
+    Serial.println("\nXPOS = ");
+    Serial.print(xpos);
+    Serial.println("\nYPOS = ");
+    Serial.print(ypos);
+
+          //enter command
+    if(xpos>200 && xpos<250 && ypos>150 && ypos<410)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      if(rembal >= amt)
+      {
+      newbal = rembal - amt;
+      tft.fillScreen(BLACK);
+      confirmPayment();
+      }
+      else
+      {
+        tft.fillRect(0, 83, tft.width(), 30, BLACK);
+        tft.drawRect(0, 83, tft.width(), 30, BLACK);
+        tft.setCursor(0,95);
+        tft.setTextColor(RED);
+        tft.setTextSize(2);
+        tft.print("INSUFFICIENT BALANCE");
+        delay(3000L);
+        kp();
+      }
+    }
+
+        //clear
+    if(xpos>180 && xpos<200 && ypos>120 && ypos<260)
+    {
+      pinMode(XM, OUTPUT);
+      pinMode(YP, OUTPUT);
+      tft.setCursor(60,85);
+      tft.setTextColor(BLACK);
+      tft.setTextSize(4);
+      tft.print(amt, 2);
+      amt = 0;
+      Serial.println(amt, 2);
+    }
+    
+          //1
+      if(xpos>0 && xpos<50 && ypos>260 && ypos<330)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.01;
+        }
+        else
+        {
+          dec = (dec*0.1) + 0.01;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //2
+      if(xpos>51 && xpos<120 && ypos>260 && ypos<330)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.02;
+        }
+        else
+        {
+          dec = (dec*0.1) + 0.02;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //3
+      if(xpos>121 && xpos<180 && ypos>260 && ypos<330)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.03;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.03;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //4
+      if(xpos>0 && xpos<50 && ypos>185 && ypos<259)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.04;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.04;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //5
+      if(xpos>51 && xpos<120 && ypos>185 && ypos<259)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.05;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.05;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //6
+      if(xpos>121 && xpos<180 && ypos>185 && ypos<259)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.06;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.06;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+          //7
+      if(xpos>0 && xpos<50 && ypos>120 && ypos<185)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.07;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.07;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //8
+      if(xpos>51 && xpos<120 && ypos>120 && ypos<185)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.08;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.08;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+  
+      //9
+      if(xpos>121 && xpos<180 && ypos>120 && ypos<185)
+      {
+        pinMode(XM, OUTPUT);
+        pinMode(YP, OUTPUT);
+        tft.setCursor(60,85);
+        tft.setTextColor(WHITE);
+        tft.setTextSize(4);
+        if(dec == 0)
+        {
+          dec = 0.09;
+        }
+        else
+        {
+          dec = (dec*0.10) + 0.09;
+        }
+        amt = amt + dec;
+        tft.print(amt, 2);
+        Serial.println(amt, 2);
+      }
+    delay(500);
+    }
+  }
 }
 
 void loop()
