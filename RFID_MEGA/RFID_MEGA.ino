@@ -45,6 +45,25 @@ long debounce_val = 50;
 float amt, newbal, dec, decvw, wh;
 float rembal = 1000;
 
+//variables used in program
+String rfid_result = "";
+String bal_result = "";
+String transactionDateTime = "";
+String transactionID = "";
+String temp_data = "";
+char query[192];
+char money[10];
+float payment = 300.00;
+char rfid_input[15]; //test values jklmnopq
+char *rfid_res = "";
+char *bal_res = "";
+char *values = "";
+int id_exists = 0;
+int lastTransID = 0;
+float balance;
+float difference;
+int currentTransID=0;
+
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
 uint8_t YM = 7;   // can be a digital pin
@@ -93,16 +112,17 @@ uint8_t Orientation = 0;    //PORTRAIT
 #include <MySQL_Cursor.h>
 byte mac_addr[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
-IPAddress server_addr(49,145,139,4);  // IP of the MySQL *server* here
-char user[] = "root";              // MySQL user login username
-char password[] = "";        // MySQL user login password
+IPAddress server_addr(192,168,2,103);  // IP of the MySQL *server* here
+char user[] = "mira";              // MySQL user login username
+char password[] = "secret";        // MySQL user login password
 
 // WiFi card example
-char ssid[] = "Ryan's Redmi";    // your SSID
-char pass[] = "ryandavid";       // your SSID Password
+char ssid[] = "RFID_Wifi";    // your SSID
+char pass[] = "password";       // your SSID Password
 
 WiFiEspClient client;            // Use this for WiFi instead of EthernetClient
 MySQL_Connection conn((Client *)&client);
+MySQL_Cursor* cursor;
 
 void setup()
 { 
@@ -286,6 +306,18 @@ String addZeroB(String str)
   }
   return str;
 
+}
+
+void connectDB() {
+  while (1) {
+    Serial.println("Connecting...");
+    if (conn.connect(server_addr, 3306, user, password)) {
+      break;
+    }
+    delay(1000);
+  }
+  //can be commented out
+  Serial.println("Connected Successfully");
 }
 
 void scanCardRoutine() {
@@ -711,8 +743,74 @@ void confirmPayment()
     }
 }
 
+int checkID(char *id) {
+  char CHECK_USER[] = "SELECT balance FROM rfidcard_db.user_data WHERE rfid_num='%s'";
+  sprintf(query, CHECK_USER, id);
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  row_values *row = NULL;
+  cursor->execute(query);
+  column_names *columns = cursor->get_columns();
+
+  do {
+    row = cursor->get_next_row();
+    if (row != NULL) {
+      strcpy(bal_res, row->values[0]);
+      id_exists = 1;
+      break;
+    }else{
+      id_exists = 0;
+      break;
+    }
+  } while (row != NULL);
+ 
+  delete cursor;
+  //clear query
+  memset(query,0,sizeof(query));
+  return id_exists;
+  //conn.close();
+  delay(1000);
+}
+
+int checkTransID(){
+  int result = 0;
+  char CHECK_LAST_TRAN[] = "SELECT transactionID FROM rfidcard_db.transaction_data ORDER BY transactionID DESC LIMIT 1";
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  row_values *row = NULL;
+  cursor->execute(CHECK_LAST_TRAN);
+  column_names *columns = cursor->get_columns();
+
+  do {
+    row = cursor->get_next_row();
+    if (row != NULL) {
+      result = atoi(row->values[0]);
+    }
+  
+  } while (row != NULL);
+ 
+  delete cursor;
+  //clear query
+  return result;
+  //conn.close();
+  delay(1000);
+}
+
 void kp()
 {
+    currentTransID = checkTransID() + 1;
+    Serial.print("Current TransID ");
+    Serial.println(currentTransID);
+    
     tft.fillScreen(BLACK);
     tft.setCursor(0, 0);
     tft.setTextSize(2);
@@ -1219,7 +1317,7 @@ void homeScreen()
 {
     int status = WiFi.begin(ssid, pass);
     tft.fillScreen(BLACK);
-    tft.setCursor(0, 0);
+    tft.setCursor(5, 0);
     tft.setTextSize(2.5);
     tft.setTextColor(WHITE);
     tft.println("COLEGIO SAN AGUSTIN");
@@ -1227,7 +1325,7 @@ void homeScreen()
     tft.println("BACOLOD");
     tft.setCursor(50,60);
     tft.setTextSize(2);
-    tft.println("Wireless");
+    tft.println(" Wireless");
     tft.println("     Payment");
     tft.println("     System");
     tft.println(" ");
@@ -1259,14 +1357,43 @@ void homeScreen()
 
 void loop()
 {
+  int status = WiFi.begin(ssid, pass);
   homeScreen();
+  connectDB();
   while(true)
   {
     scanCardRoutine();
     /* If so then get its serial number */
-    if(content.length() > 0) {
+    if(content.length() > 0) 
+    {
     Serial.println("Card found: " + content);
-    kp();
+      if(status == WL_CONNECTED)
+      {
+        content.toCharArray(rfid_input,sizeof(rfid_input));
+        checkID(rfid_input);
+        if(id_exists)
+        {
+          kp();
+        }
+        else
+        {
+          tft.setCursor(20,250);
+          tft.setTextSize(2);
+          tft.setTextColor(RED);
+          tft.print("CARD NOT FOUND");
+          delay(1500);
+          loop();
+          break;
+        }
+      }
+      else
+      {
+        tft.setCursor(20,250);
+        tft.setTextSize(2);
+        tft.setTextColor(RED);
+        tft.print("CHECK CONNECTION");
+        break;
+      }
     }
   }
 }
