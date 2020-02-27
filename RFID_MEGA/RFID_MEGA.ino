@@ -768,12 +768,12 @@ int checkID(char *id) {
       break;
     }
   } while (row != NULL);
- 
+  flushMe();
   delete cursor;
   //clear query
   memset(query,0,sizeof(query));
   return id_exists;
-  //conn.close();
+  conn.close();
   delay(1000);
 }
 
@@ -798,7 +798,9 @@ int checkTransID(){
   
   } while (row != NULL);
  
+  flushMe();
   delete cursor;
+  
   //clear query
   return result;
   //conn.close();
@@ -810,7 +812,7 @@ void kp()
     currentTransID = checkTransID() + 1;
     Serial.print("Current TransID ");
     Serial.println(currentTransID);
-    
+    flushMe();
     tft.fillScreen(BLACK);
     tft.setCursor(0, 0);
     tft.setTextSize(2);
@@ -1241,6 +1243,7 @@ while(true)
 
       if(xpos>50 && xpos<180 && ypos>60 && ypos<177)
       {
+        flushMe();
         tft.fillScreen(BLACK);
         tft.setCursor(10,10);
         tft.setTextColor(WHITE);
@@ -1313,6 +1316,26 @@ while(true)
   }
 }
 
+void flushMe() {
+  while (client.available()) 
+  { 
+    client.read(); 
+    delay(10);
+  }
+
+  while (Serial.available()) 
+  { 
+    Serial.read(); 
+    delay(10);
+  }
+
+  while (Serial1.available()) 
+  { 
+    Serial1.read(); 
+    delay(10);
+  }
+}
+
 void homeScreen()
 {
     int status = WiFi.begin(ssid, pass);
@@ -1373,6 +1396,7 @@ void loop()
         checkID(rfid_input);
         if(id_exists)
         {
+          flushMe();
           kp();
         }
         else
