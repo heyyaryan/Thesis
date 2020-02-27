@@ -43,7 +43,7 @@ int digitCount = 0;
 unsigned long past = 0;
 long debounce_val = 50;
 float amt, newbal, dec, decvw, wh;
-float rembal;
+float rembal = 1000;
 
 //variables used in program
 String rfid_result = "";
@@ -63,7 +63,6 @@ int lastTransID = 0;
 float balance;
 float difference;
 int currentTransID=0;
-int index = 0;
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
@@ -811,16 +810,13 @@ void kp()
     currentTransID = checkTransID() + 1;
     Serial.print("Current TransID ");
     Serial.println(currentTransID);
-
-    checkID(rfid_input);
+    
     tft.fillScreen(BLACK);
     tft.setCursor(0, 0);
     tft.setTextSize(2);
     tft.setTextColor(WHITE);
     tft.print("Card No.: " + content);
     tft.print("\nRem. Bal.: ");
-    //transfer bal_result as float
-    rembal = atof(bal_res);
     tft.print(rembal);
     tft.setCursor(0,50);
     tft.print("Enter Amount:");
@@ -1385,12 +1381,6 @@ void loop()
           tft.setTextSize(2);
           tft.setTextColor(RED);
           tft.print("CARD NOT FOUND");
-          amt = 0;
-          dec = 0;
-          wh = 0;
-          rembal = 0;
-          newbal = 0;
-          content = "";
           delay(1500);
           loop();
           break;
@@ -1402,12 +1392,6 @@ void loop()
         tft.setTextSize(2);
         tft.setTextColor(RED);
         tft.print("CHECK CONNECTION");
-        amt = 0;
-        dec = 0;
-        wh = 0;
-        rembal = 0;
-        newbal = 0;
-        content = "";
         break;
       }
     }
