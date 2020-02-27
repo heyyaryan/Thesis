@@ -113,13 +113,13 @@ uint8_t Orientation = 0;    //PORTRAIT
 #include <MySQL_Cursor.h>
 byte mac_addr[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
-IPAddress server_addr(192,168,1,11);  // IP of the MySQL *server* here
+IPAddress server_addr(192,168,2,103);  // IP of the MySQL *server* here
 char user[] = "mira";              // MySQL user login username
 char password[] = "secret";        // MySQL user login password
 
 // WiFi card example
-char ssid[] = "David_WiFi";    // your SSID
-char pass[] = "secretpakta";       // your SSID Password
+char ssid[] = "RFID_Wifi";    // your SSID
+char pass[] = "password";       // your SSID Password
 
 WiFiEspClient client;            // Use this for WiFi instead of EthernetClient
 MySQL_Connection conn((Client *)&client);
@@ -1245,8 +1245,6 @@ while(true)
 
       if(xpos>50 && xpos<180 && ypos>60 && ypos<177)
       {
-        float amtpr = amt;
-        float newbalpr = newbal;
         tft.fillScreen(BLACK);
         tft.setCursor(10,10);
         tft.setTextColor(WHITE);
@@ -1273,10 +1271,10 @@ while(true)
         printer.println("Dept: COE");
         printer.doubleHeightOn();
         printer.print("Amount: ");
-        printer.println(amtpr);
+        printer.println(amt);
         printer.doubleHeightOff();
         printer.print("New Bal: ");
-        printer.println(newbalpr);
+        printer.println(newbal);
         printer.feed(1);
         printer.println("Thank You! Come Again");
         printer.println("---------------------------------");
@@ -1364,12 +1362,6 @@ void homeScreen()
 void loop()
 {
   int status = WiFi.begin(ssid, pass);
-  amt = 0;
-  dec = 0;
-  wh = 0;
-  rembal = 0;
-  newbal = 0;
-  content = "";
   homeScreen();
   connectDB();
   while(true)
@@ -1385,7 +1377,6 @@ void loop()
         checkID(rfid_input);
         if(id_exists)
         {
-          conn.close();
           kp();
         }
         else
