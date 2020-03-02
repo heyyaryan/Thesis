@@ -43,7 +43,7 @@ int digitCount = 0;
 unsigned long past = 0;
 long debounce_val = 50;
 float amt, newbal, dec, decvw, wh;
-float rembal = 1000;
+float rembal;
 
 //variables used in program
 String rfid_result = "";
@@ -53,7 +53,7 @@ String transactionID = "";
 String temp_data = "";
 char query[192];
 char money[10];
-float payment = 300.00;
+float payment;
 char rfid_input[15]; //test values jklmnopq
 char *rfid_res = "";
 char *bal_res = "";
@@ -63,6 +63,11 @@ int lastTransID = 0;
 float balance;
 float difference;
 int currentTransID=0;
+int result;
+char new_bal[10];
+String fn = "";
+String ln = "";
+String dept = "";
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
@@ -170,8 +175,8 @@ void setup()
 
 
   // WIFI
-  Serial1.begin(115200);
-  WiFi.init(&Serial1);
+  Serial2.begin(115200);
+  WiFi.init(&Serial2);
   tft.setCursor(0,10);
   tft.setTextSize(1);
   tft.setTextColor(WHITE);
@@ -693,6 +698,15 @@ void confirmPayment()
     
         if(xpos>50 && xpos<180 && ypos>60 && ypos<177)
         {
+          payment = amt;
+          tft.fillRect(0, ((tft.height()/8)*2), tft.width(), tft.height(), BLACK); 
+          tft.drawRect(0, ((tft.height()/8)*2), tft.width(), tft.height(), BLACK); 
+          tft.setCursor(((tft.width()/4)*1)+18, tft.height()+38);
+          tft.setTextSize(2);
+          tft.setTextColor(WHITE);
+          tft.print("Saving transaction...");
+          insertTransaction(currentTransID, rfid_input);
+          updateBal(currentTransID, rfid_input);
           tft.fillScreen(BLACK);
           tft.setCursor(20,10);
           tft.setTextSize(3);
@@ -753,32 +767,98 @@ int checkID(char *id) {
     conn.close();
     connectDB();
   }
-  row_values *row = NULL;
+  
   cursor->execute(query);
+  //Serial.println("I have executed the query result is below");
   column_names *columns = cursor->get_columns();
-
+  //print column names
+//  for (int f = 0; f < columns->num_fields; f++) {
+//    Serial.print(columns->fields[f]->name);
+//    if (f < columns->num_fields - 1) {
+//      Serial.print(',');
+//    }
+//  }
+//  Serial.println();
+  
+    row_values *row = NULL;
   do {
     row = cursor->get_next_row();
     if (row != NULL) {
-      strcpy(bal_res, row->values[0]);
+      //Serial.println(row->values[0]); //THIS SOLVES the PROBLEM of EXCESS DATA
+//      strcpy(bal_res, row->values[0]);
+     
+      bal_result = (row->values[0]);
+      
+     
       id_exists = 1;
+      
       break;
-    }else{
+    } else {
       id_exists = 0;
+      
       break;
     }
   } while (row != NULL);
-  flushMe();
+  
   delete cursor;
   //clear query
-  memset(query,0,sizeof(query));
+  memset(query, 0, sizeof(query));
+//  row_values *row = NULL;
+//  do {
+//    row = cursor->get_next_row();
+//    if (row != NULL) {
+//      strcpy(bal_res, row->values[0]);
+//      id_exists = 1;
+//      
+//      break;
+//    } else {
+//      id_exists = 0;
+//      
+//      break;
+//    }
+//  } while (row != NULL);
+//  
+//  delete cursor;
+//  //clear query
+//  memset(query, 0, sizeof(query));
   return id_exists;
-  conn.close();
+  //conn.close();
   delay(1000);
 }
 
-int checkTransID(){
-  int result = 0;
+int get_free_memory()
+{
+  extern char __bss_end;
+  extern char *__brkval;
+  int free_memory;
+  if ((int)__brkval == 0)
+    free_memory = ((int)&free_memory) - ((int)&__bss_end);
+  else
+    free_memory = ((int)&free_memory) - ((int)__brkval);
+  return free_memory;
+}
+
+void getDateTime(char *result) {
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+
+  row_values *row = NULL;
+  cursor->execute("SELECT NOW()");
+  column_names *columns = cursor->get_columns();
+  row = cursor->get_next_row();
+  if (row != NULL) {
+    strcat(result, row->values[0]);
+    delete cursor;
+
+  }
+}
+
+int checkTransID() {
   char CHECK_LAST_TRAN[] = "SELECT transactionID FROM rfidcard_db.transaction_data ORDER BY transactionID DESC LIMIT 1";
   cursor = new MySQL_Cursor(&conn);
   //force db connection. is bad? hmm?
@@ -795,24 +875,76 @@ int checkTransID(){
     if (row != NULL) {
       result = atoi(row->values[0]);
     }
-  
+
   } while (row != NULL);
- 
-  flushMe();
+
   delete cursor;
-  
   //clear query
   return result;
   //conn.close();
   delay(1000);
 }
 
+
+void insertTransaction(int trans_id, char *rfid) {
+  //prepare statement
+  char INSERT_DATA[] = "INSERT INTO rfidcard_db.transaction_data (transactionID,rfid_num,transactionAmount,transactionType) VALUES (%d,'%s',%s,'PR')";
+  dtostrf(payment, 1, 2, money);
+  //Serial.println(trans_id)
+  sprintf(query, INSERT_DATA, trans_id, rfid, money);
+  //Serial.println(query);
+  //execute query
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  cursor->execute(query);
+  delete cursor;
+  Serial.println("Record inserted.");
+  //clear queries and money array;
+  memset(query, 0, sizeof(query));
+  memset(money, 0, sizeof(money));
+  //verify if cleared
+  //  Serial.print("query ");
+  //  Serial.println(query);
+  //  Serial.print("money ");
+  //  Serial.println(money);
+  delay(1000);
+}
+
+void updateBal(int trans_id, char *rfid) {
+  char UPDATE_SQL[] = "UPDATE rfidcard_db.user_data SET balance = '%s' WHERE rfid_num = '%s'";
+  dtostrf(newbal, 1, 2, new_bal);
+  sprintf(query, UPDATE_SQL, new_bal, rfid);
+  //Serial.println(query);
+  //execute query
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  cursor->execute(query);
+  delete cursor;
+  Serial.println("Record inserted.");
+  //clear queries and money array;
+  memset(query, 0, sizeof(query));
+  memset(new_bal, 0, sizeof(new_bal));
+  //verify if cleared
+  //  Serial.print("query ");
+  //  Serial.println(query);
+  //  Serial.print("money ");
+  //  Serial.println(money);
+  delay(1000);
+}
+
 void kp()
 {
-    currentTransID = checkTransID() + 1;
+    currentTransID = result + 1;
     Serial.print("Current TransID ");
     Serial.println(currentTransID);
-    flushMe();
     tft.fillScreen(BLACK);
     tft.setCursor(0, 0);
     tft.setTextSize(2);
@@ -1243,7 +1375,6 @@ while(true)
 
       if(xpos>50 && xpos<180 && ypos>60 && ypos<177)
       {
-        flushMe();
         tft.fillScreen(BLACK);
         tft.setCursor(10,10);
         tft.setTextColor(WHITE);
@@ -1263,11 +1394,10 @@ while(true)
         printer.inverseOff();
         printer.justify('L');
         printer.feed(1);
-        printer.println("TranCode: 5857854");
+        printer.print("TranCode: ");
+        printer.println(result);
         printer.println("Vendor: BOOKSTORE");
         printer.println("Card No: " + content);
-        printer.println("Cardholder: DAVID, RJ");
-        printer.println("Dept: COE");
         printer.doubleHeightOn();
         printer.print("Amount: ");
         printer.println(amt);
@@ -1396,7 +1526,16 @@ void loop()
         checkID(rfid_input);
         if(id_exists)
         {
-          flushMe();
+          tft.setCursor(20,250);
+          tft.setTextSize(2);
+          tft.setTextColor(RED);
+          tft.print("PLEASE WAIT");
+          char buff[bal_result.length()];
+          bal_result.toCharArray(buff, bal_result.length()+1);
+          rembal = atof(buff);
+          checkTransID();
+          Serial.println("TransID: ");
+          Serial.print(result);
           kp();
         }
         else
@@ -1405,7 +1544,7 @@ void loop()
           tft.setTextSize(2);
           tft.setTextColor(RED);
           tft.print("CARD NOT FOUND");
-          delay(1500);
+          delay(1000);
           loop();
           break;
         }
