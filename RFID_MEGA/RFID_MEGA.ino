@@ -24,7 +24,7 @@ MCUFRIEND_kbv tft;       // hard-wired for UNO shields anyway.
 
 /* printer libs */
 #include "Adafruit_Thermal.h"
-Adafruit_Thermal printer(&Serial3);
+Adafruit_Thermal printer(&Serial1);
 
 
 #if defined(__SAM3X8E__)
@@ -65,9 +65,12 @@ float difference;
 int currentTransID=0;
 int result;
 char new_bal[10];
-String fn = "";
-String ln = "";
-String dept = "";
+char fn = "";
+char ln = "";
+char dept = "";
+String fnb = "";
+String lnb = "";
+String deptb = "";
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
@@ -170,7 +173,7 @@ void setup()
     /* printer init */
   // NOTE: SOME PRINTERS NEED 9600 BAUD instead of 19200, check test page.
   //mySerial.begin(19200);  // Initialize SoftwareSerial
-  Serial3.begin(9600); // Use this instead if using hardware serial
+  Serial1.begin(9600); // Use this instead if using hardware serial
   printer.begin();        // Init printer (same regardless of serial type)
 
 
@@ -771,31 +774,18 @@ int checkID(char *id) {
   cursor->execute(query);
   //Serial.println("I have executed the query result is below");
   column_names *columns = cursor->get_columns();
-  //print column names
-//  for (int f = 0; f < columns->num_fields; f++) {
-//    Serial.print(columns->fields[f]->name);
-//    if (f < columns->num_fields - 1) {
-//      Serial.print(',');
-//    }
-//  }
-//  Serial.println();
+
   
     row_values *row = NULL;
   do {
     row = cursor->get_next_row();
     if (row != NULL) {
-      //Serial.println(row->values[0]); //THIS SOLVES the PROBLEM of EXCESS DATA
-//      strcpy(bal_res, row->values[0]);
-     
       bal_result = (row->values[0]);
-      
-     
       id_exists = 1;
       
       break;
     } else {
       id_exists = 0;
-      
       break;
     }
   } while (row != NULL);
@@ -803,24 +793,120 @@ int checkID(char *id) {
   delete cursor;
   //clear query
   memset(query, 0, sizeof(query));
-//  row_values *row = NULL;
-//  do {
-//    row = cursor->get_next_row();
-//    if (row != NULL) {
-//      strcpy(bal_res, row->values[0]);
-//      id_exists = 1;
-//      
-//      break;
-//    } else {
-//      id_exists = 0;
-//      
-//      break;
-//    }
-//  } while (row != NULL);
-//  
-//  delete cursor;
-//  //clear query
-//  memset(query, 0, sizeof(query));
+  return id_exists;
+  //conn.close();
+  delay(1000);
+}
+
+int checkFN(char *id) {
+  char CHECK_USER[] = "SELECT fname FROM rfidcard_db.user_data WHERE rfid_num='%s'";
+  sprintf(query, CHECK_USER, id);
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  
+  cursor->execute(query);
+  //Serial.println("I have executed the query result is below");
+  column_names *columns = cursor->get_columns();
+
+  
+    row_values *row = NULL;
+  do {
+    row = cursor->get_next_row();
+    if (row != NULL) {
+      fnb = atol(row->values[0]);
+      id_exists = 1;
+      
+      break;
+    } else {
+      id_exists = 0;
+      break;
+    }
+  } while (row != NULL);
+  
+  delete cursor;
+  //clear query
+  memset(query, 0, sizeof(query));
+  return id_exists;
+  //conn.close();
+  delay(1000);
+}
+
+int checkLN(char *id) {
+  char CHECK_USER[] = "SELECT lname FROM rfidcard_db.user_data WHERE rfid_num='%s'";
+  sprintf(query, CHECK_USER, id);
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  
+  cursor->execute(query);
+  //Serial.println("I have executed the query result is below");
+  column_names *columns = cursor->get_columns();
+
+  
+    row_values *row = NULL;
+  do {
+    row = cursor->get_next_row();
+    if (row != NULL) {
+      lnb = atol(row->values[0]);
+      id_exists = 1;
+      
+      break;
+    } else {
+      id_exists = 0;
+      break;
+    }
+  } while (row != NULL);
+  
+  delete cursor;
+  //clear query
+  memset(query, 0, sizeof(query));
+  return id_exists;
+  //conn.close();
+  delay(1000);
+}
+
+int checkDt(char *id) {
+  char CHECK_USER[] = "SELECT dept_ofc FROM rfidcard_db.user_data WHERE rfid_num='%s'";
+  sprintf(query, CHECK_USER, id);
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  
+  cursor->execute(query);
+  //Serial.println("I have executed the query result is below");
+  column_names *columns = cursor->get_columns();
+
+  
+    row_values *row = NULL;
+  do {
+    row = cursor->get_next_row();
+    if (row != NULL) {
+      deptb = atol(row->values[0]);
+      id_exists = 1;
+      
+      break;
+    } else {
+      id_exists = 0;
+      break;
+    }
+  } while (row != NULL);
+  
+  delete cursor;
+  //clear query
+  memset(query, 0, sizeof(query));
   return id_exists;
   //conn.close();
   delay(1000);
@@ -1534,6 +1620,14 @@ void loop()
           bal_result.toCharArray(buff, bal_result.length()+1);
           rembal = atof(buff);
           checkTransID();
+          checkFN(rfid_input);
+          fnb.toCharArray(fn, fnb.length()+1);
+          checkLN(rfid_input);
+          lnb.toCharArray(ln, lnb.length()+1);
+          checkDt(rfid_input);
+          deptb.toCharArray(dept, deptb.length()+1);
+          Serial.println("Name: " + fn + ln);
+          Serial.println("Dept: " + dept);
           Serial.println("TransID: ");
           Serial.print(result);
           kp();
