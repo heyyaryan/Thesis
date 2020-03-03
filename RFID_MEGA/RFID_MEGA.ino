@@ -62,7 +62,7 @@ int id_exists = 0;
 int lastTransID = 0;
 float balance;
 float difference;
-int currentTransID=0;
+int currentTransID;
 int result;
 char new_bal[10];
 char fn = "";
@@ -71,6 +71,7 @@ char dept = "";
 String fnb = "";
 String lnb = "";
 String deptb = "";
+char dateTime = "";
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
@@ -760,6 +761,26 @@ void confirmPayment()
     }
 }
 
+void getDateTime(char *dateTime) {
+  // create MySQL cursor object
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+
+  row_values *row = NULL;
+  cursor->execute("SELECT NOW()");
+  column_names *columns = cursor->get_columns();
+  row = cursor->get_next_row();
+  if (row != NULL) {
+    strcat(dateTime, row->values[0]);
+    delete cursor;
+
+  }
+}
+
 int checkID(char *id) {
   char CHECK_USER[] = "SELECT balance FROM rfidcard_db.user_data WHERE rfid_num='%s'";
   sprintf(query, CHECK_USER, id);
@@ -924,28 +945,8 @@ int get_free_memory()
   return free_memory;
 }
 
-void getDateTime(char *result) {
-  // create MySQL cursor object
-  cursor = new MySQL_Cursor(&conn);
-  //force db connection. is bad? hmm?
-  while (!conn.connected()) {
-    conn.close();
-    connectDB();
-  }
-
-  row_values *row = NULL;
-  cursor->execute("SELECT NOW()");
-  column_names *columns = cursor->get_columns();
-  row = cursor->get_next_row();
-  if (row != NULL) {
-    strcat(result, row->values[0]);
-    delete cursor;
-
-  }
-}
-
 int checkTransID() {
-  char CHECK_LAST_TRAN[] = "SELECT transactionID FROM rfidcard_db.transaction_data ORDER BY transactionID DESC LIMIT 1";
+  char CHECK_LAST_TRAN[] = "SELECT id_base FROM rfidcard_db.transaction_data ORDER BY transactionID DESC LIMIT 1";
   cursor = new MySQL_Cursor(&conn);
   //force db connection. is bad? hmm?
   while (!conn.connected()) {
@@ -1571,6 +1572,9 @@ void homeScreen()
     tft.setCursor(60,150);
     tft.setTextSize(2);
     tft.println("SCAN CARD");
+    tft.setCursor(0,(((tft.height()/9)*7)+15));
+    tft.setTextSize(2);
+    tft.println(dateTime);
     tft.setCursor(0,(((tft.height()/9)*8)+15));
     tft.setTextSize(1);
     tft.print("Server Status:");
@@ -1619,7 +1623,6 @@ void loop()
           char buff[bal_result.length()];
           bal_result.toCharArray(buff, bal_result.length()+1);
           rembal = atof(buff);
-          checkTransID();
           checkFN(rfid_input);
           fnb.toCharArray(fn, fnb.length()+1);
           checkLN(rfid_input);
