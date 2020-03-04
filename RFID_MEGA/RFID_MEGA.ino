@@ -64,6 +64,7 @@ float balance;
 float difference;
 int currentTransID;
 int result;
+int transres = 0;
 char new_bal[10];
 char fn = "";
 char ln = "";
@@ -926,7 +927,7 @@ int get_free_memory()
 }
 
 int checkTransID() {
-  char CHECK_LAST_TRAN[] = "SELECT id_base FROM rfidcard_db.transaction_data ORDER BY transactionID DESC LIMIT 1";
+  char CHECK_LAST_TRAN[] = "SELECT max(transactionID) AS LAST FROM rfidcard_db.transaction_data WHERE 1";
   cursor = new MySQL_Cursor(&conn);
   //force db connection. is bad? hmm?
   while (!conn.connected()) {
@@ -940,13 +941,16 @@ int checkTransID() {
   do {
     row = cursor->get_next_row();
     if (row != NULL) {
-      result = atoi(row->values[0]);
+      Serial.println(row->values[0]);
+      transres = atoi(row->values[0]);
     }
 
   } while (row != NULL);
 
   delete cursor;
   //clear query
+  Serial.print("Result: ");
+  Serial.println(transres);
   return result;
   //conn.close();
   delay(1000);
@@ -1009,6 +1013,7 @@ void updateBal(int trans_id, char *rfid) {
 
 void kp()
 {
+    checkTransID();
     currentTransID = result + 1;
     Serial.print("Current TransID ");
     Serial.println(currentTransID);
