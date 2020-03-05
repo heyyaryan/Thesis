@@ -1,4 +1,4 @@
-/*
+  /*
 PINOUT:
 RC522 MODULE    Uno/Nano     MEGA
 SDA             D10          D9
@@ -328,6 +328,10 @@ void connectDB() {
   }
   //can be commented out
   Serial.println("Connected Successfully");
+  tft.setCursor(60,150);
+  tft.setTextColor(WHITE);
+  tft.setTextSize(2);
+  tft.println("SCAN CARD");
 }
 
 void scanCardRoutine() {
@@ -1554,9 +1558,6 @@ void homeScreen()
     tft.println("     Payment");
     tft.println("     System");
     tft.println(" ");
-    tft.setCursor(60,150);
-    tft.setTextSize(2);
-    tft.println("SCAN CARD");
     tft.setCursor(0,(((tft.height()/9)*7)+15));
     tft.setTextSize(2);
     tft.setCursor(0,(((tft.height()/9)*8)+15));
