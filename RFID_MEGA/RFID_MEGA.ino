@@ -62,10 +62,10 @@ int id_exists = 0;
 int lastTransID = 0;
 float balance;
 float difference;
-int currentTransID;
-int result;
+int currentTransID = 0;
 int transres = 0;
 char new_bal[10];
+String strDateTime = "";
 
 uint8_t YP = A1;  // must be an analog pin, use "An" notation!
 uint8_t XM = A2;  // must be an analog pin, use "An" notation!
@@ -325,6 +325,11 @@ void connectDB() {
   tft.setTextColor(WHITE);
   tft.setTextSize(2);
   tft.println("SCAN CARD");
+  getDateTime();
+  tft.setCursor(0,(((tft.height()/9)*8)));
+  tft.setTextSize(1);
+  tft.setTextColor(WHITE);
+  tft.println("Date/Time: " + strDateTime);
 }
 
 void scanCardRoutine() {
@@ -437,7 +442,9 @@ void deci()
         dec = (dec/0.1) + 0.00;
       }
       amt = wh + dec;
-      tft.print(amt, 0);
+      tft.drawRect(55,85,tft.width(),40,BLACK);
+      tft.fillRect(55,85,tft.width(),40,BLACK);
+      tft.print(amt, 2);
       Serial.println(amt, 0);
     }
     
@@ -810,7 +817,8 @@ int get_free_memory()
 }
 
 int checkTransID() {
-  char CHECK_LAST_TRAN[] = "SELECT max(transactionID) AS LAST FROM rfidcard_db.transaction_data WHERE 1";
+  int result = 0;
+  char CHECK_LAST_TRAN[] = "SELECT MAX(transactionID) FROM rfidcard_db.transaction_data";
   cursor = new MySQL_Cursor(&conn);
   //force db connection. is bad? hmm?
   while (!conn.connected()) {
@@ -824,16 +832,13 @@ int checkTransID() {
   do {
     row = cursor->get_next_row();
     if (row != NULL) {
-      Serial.println(row->values[0]);
-      transres = atoi(row->values[0]);
+      result = atoi(row->values[0]);
     }
 
   } while (row != NULL);
 
   delete cursor;
   //clear query
-  Serial.print("Result: ");
-  Serial.println(transres);
   return result;
   //conn.close();
   delay(1000);
@@ -894,10 +899,37 @@ void updateBal(int trans_id, char *rfid) {
   delay(1000);
 }
 
+void getDateTime(){
+  char GET_DATE_TIME[] = "SELECT NOW()";
+  cursor = new MySQL_Cursor(&conn);
+  //force db connection. is bad? hmm?
+  while (!conn.connected()) {
+    conn.close();
+    connectDB();
+  }
+  row_values *row = NULL;
+  cursor->execute(GET_DATE_TIME);
+  column_names *columns = cursor->get_columns();
+
+  do {
+    row = cursor->get_next_row();
+    if (row != NULL) {
+      Serial.println(row->values[0]);
+      strDateTime = row->values[0];
+    }
+
+  } while (row != NULL);
+
+  delete cursor;
+  //clear query
+  
+  //conn.close();
+  delay(1000);
+}
+
 void kp()
 {
-    checkTransID();
-    currentTransID = result + 1;
+    currentTransID = checkTransID() + 1;
     Serial.print("Current TransID ");
     Serial.println(currentTransID);
     tft.fillScreen(BLACK);
@@ -1101,7 +1133,7 @@ void kp()
           wh = (wh*10) + 0;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1122,7 +1154,7 @@ void kp()
           wh = (wh*10) + 1;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1143,7 +1175,7 @@ void kp()
           wh = (wh*10) + 2;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1164,7 +1196,7 @@ void kp()
           wh = (wh*10) + 3;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1185,7 +1217,7 @@ void kp()
           wh = (wh*10) + 4;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1206,7 +1238,7 @@ void kp()
           wh = (wh*10) + 5;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1227,7 +1259,7 @@ void kp()
           wh = (wh*10) + 6;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1248,7 +1280,7 @@ void kp()
           wh = (wh*10) + 7;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1269,7 +1301,7 @@ void kp()
           wh = (wh*10) + 8;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1290,7 +1322,7 @@ void kp()
           wh = (wh*10) + 9;
         }
         amt = wh + dec;
-        tft.print(amt, 0);
+        tft.print(amt, 2);
         Serial.println(amt, 0);
       }
   
@@ -1350,9 +1382,10 @@ while(true)
         printer.justify('L');
         printer.feed(1);
         printer.print("TranCode: ");
-        printer.println(result);
+        printer.println(currentTransID);
         printer.println("Vendor: BOOKSTORE");
         printer.println("Card No: " + content);
+        printer.println("Date/Time: " + strDateTime);
         printer.doubleHeightOn();
         printer.print("Amount: ");
         printer.println(amt);
@@ -1433,12 +1466,14 @@ void homeScreen()
     tft.println("BACOLOD");
     tft.setCursor(50,60);
     tft.setTextSize(2);
-    tft.println(" Wireless");
+    tft.println(" Cashless");
     tft.println("     Payment");
     tft.println("     System");
     tft.println(" ");
-    tft.setCursor(0,(((tft.height()/9)*7)+15));
-    tft.setTextSize(2);
+    tft.setCursor(0,(((tft.height()/9)*8)));
+    tft.setTextSize(1);
+    tft.setTextColor(WHITE);
+    tft.println("Date/Time: " + strDateTime);
     tft.setCursor(0,(((tft.height()/9)*8)+15));
     tft.setTextSize(1);
     tft.print("Server Status:");
@@ -1487,9 +1522,24 @@ void loop()
           char buff[bal_result.length()];
           bal_result.toCharArray(buff, bal_result.length()+1);
           rembal = atof(buff);
-          Serial.println("TransID: ");
-          Serial.print(result);
-          kp();
+          currentTransID = checkTransID() + 1;
+          Serial.print("Current TransID ");
+          Serial.println(currentTransID);
+          if(rembal > 0)
+          {
+            kp();
+          }
+          else
+          {
+            tft.setCursor(20,250);
+            tft.setTextSize(2);
+            tft.setTextColor(RED);
+            tft.print("INSUFFICIENT BALANCE");
+            content="";
+            delay(1000);
+            loop();
+            break;
+          }
         }
         else
         {
@@ -1497,6 +1547,7 @@ void loop()
           tft.setTextSize(2);
           tft.setTextColor(RED);
           tft.print("CARD NOT FOUND");
+          content="";
           delay(1000);
           loop();
           break;
@@ -1508,6 +1559,7 @@ void loop()
         tft.setTextSize(2);
         tft.setTextColor(RED);
         tft.print("CHECK CONNECTION");
+        content="";
         break;
       }
     }
